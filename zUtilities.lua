@@ -234,28 +234,27 @@ options.args.ui = {
 			set = function(i, switch)
 				db.showQuestLevels = switch
 				if switch then
-                    mod:SecureHook("QuestLogQuests_Update", "updateQuestLog")
+                    mod:SecureHook("GossipFrameUpdate", "gossipQuestFormat")
                     mod:SecureHook(QUEST_TRACKER_MODULE, "Update", "updateWatchFrame") 
+                    mod:SecureHook("QuestLogQuests_Update", "updateQuestLog")
                     -- mod:SecureHook("ObjectiveTracker_Update", "updateWatchFrame")
                     -- mod:SecureHook(QuestScrollFrame, "Update", "updateQuestLog")
-                    mod:SecureHookScript(QuestFrameGreetingPanel, "OnShow", "updateQuestFrame")
+                    -- mod:SecureHookScript(QuestFrameGreetingPanel, "OnShow", "updateQuestFrame")
                     mod:SecureHook("QuestFrameGreetingPanel_OnShow", "updateQuestFrame")
                     mod:SecureHook("QuestInfo_Display", "updateQuestInfo")
-                    mod:SecureHook("GossipFrameUpdate", "gossipQuestFormat")
                     mod:ceFilters()
 					if not mod.Gossip_Show then
 						mod.Gossip_Show = true
 					end
 				else
-                    mod:Unhook("QuestLogQuests_Update")
+                    mod:Unhook("GossipFrameUpdate")
                     mod:Unhook(QUEST_TRACKER_MODULE, "Update")
+                    mod:Unhook("QuestLogQuests_Update")
                     -- mod:Unhook("ObjectiveTracker_Update")
-					-- mod:Unhook("QuestMapFrame_UpdateAll")
                     -- mod:Unhook(QuestScrollFrame, "Update")
-                    mod:Unhook(QuestFrameGreetingPanel, "OnShow")
+                    -- mod:Unhook(QuestFrameGreetingPanel, "OnShow")
                     mod:Unhook("QuestFrameGreetingPanel_OnShow")
                     mod:Unhook("QuestInfo_Display")
-                    mod:Unhook("GossipFrameUpdate")
 					if not db.SkipGossip and not db.showQuestLevels then -- and not db.AutoRevive then
 						mod.Gossip_Show = false
 					end
@@ -627,6 +626,7 @@ function zUtilities:OnDisable()
 --   -- build a "standby" mode, or be able to toggle modules on/off.
     -- send message on disable
     mod:zMSG("Disabled!")
+    mod:UnhookAll()
 end
 
 
@@ -674,8 +674,8 @@ function zUtilities:zOnEvent(event, ...)
         mod:inviteHandler(arg1)
         mod:RegisterEvent("GROUP_ROSTER_UPDATE", "zOnEvent")
     elseif (event == "QUEST_GREETING") or (event == "QUEST_LOG_UPDATE") then
-        mod:gossipHandler()
-        mod:updateQuestFrame()
+        -- mod:gossipHandler()
+        -- mod:updateQuestFrame()
     elseif (event == "ZONE_CHANGED_NEW_AREA") then
         mod:ZONE_CHANGED_NEW_AREA()
     -- elseif (event == "") then
@@ -1542,6 +1542,7 @@ function zUtilities:questFormat(isActive, ...)
                 qColor.r*255, qColor.g*255, qColor.b*255,
                 level, isRepeatable and tags.Repeatable or "",
                 frequency and tags.Daily or "", title)
+            GossipResize(_G["GossipTitleButton"..i])
 		end
 		i = i + 1
 	end
@@ -1579,6 +1580,7 @@ function zUtilities:updateQuestFrame()
 		if level > 0 then
 			button = getglobal("QuestTitleButton"..i)
 			button:SetText(format('%s[%d]|r %s',mod:hex(qColor),level,title))
+            GossipResize(button)
 		end
 	end
     if (debug) then
@@ -1592,33 +1594,28 @@ end
 -- Name: zUtilities:updateQuestLog()
 -- Abstract: Add Quest Levels to the QuestLogFrame
 --------------------------------------------------------------------------------
-function zUtilities:updateQuestLog()
+function zUtilities:updateQuestLog(poiTable)
     local numEntries, numQuests = GetNumQuestLogEntries()
     local headerIndex = 0
     for questLogIndex=1,numEntries do
-        -- local questLogIndex = button.questLogIndex or 0
         local name, level, suggestedGroup, isHeader, _, isComplete, frequency, questID , startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle(questLogIndex)
-		local title, tag, frequency, isComplete = mod:getTaggedQuestTitle(questLogIndex)
         -- print("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
 		if isOnMap and not isTask and not isHeader then
-        headerIndex = headerIndex + 1
-        local button = QuestLogQuests_GetTitleButton(headerIndex)
-        local oldBlockHeight = button:GetHeight()
-        local oldHeight = button.Text:GetStringHeight()
-        -- local newTitle = "["..level.."] "..button.Text:GetText()
-        button.Text:SetText(title)
-        local newHeight = button.Text:GetStringHeight()
-        button:SetHeight(oldBlockHeight + newHeight - oldHeight)
-        -- button.Text:SetText(title)
-        -- button.Text:SetPoint("TOPLEFT",20,-4)
-        button.Text:SetWidth(215)
-        button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
-        -- button:SetHeight(button:GetHeight()+1)
-		-- if (tag or daily) and not complete then button.Text:SetText("") end
-        if (debug) then
-            -- mod:zMSG("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
-        end
-        -- end
+            headerIndex = headerIndex + 1
+            local button = QuestLogQuests_GetTitleButton(headerIndex)
+            local oldBlockHeight = button:GetHeight()
+            local oldHeight = button.Text:GetStringHeight()
+            local newTitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
+            button.Text:SetText(newTitle)
+            local newHeight = button.Text:GetStringHeight()
+            button:SetHeight(oldBlockHeight + newHeight - oldHeight)
+            button.Text:SetPoint("TOPLEFT",20,-4)
+            button.Text:SetWidth(215)
+            button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
+            if (debug) then
+                -- mod:zMSG("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
+            end
+            -- end
         end
 	end
     if (debug) then
@@ -1626,7 +1623,9 @@ function zUtilities:updateQuestLog()
     end
 end
 
+-- /run local ne,nq=GetNumQuestLogEntries() local hi=0 for qli=1,ne do hi=hi+1 local b=QuestLogQuests_GetTitleButton(hi) print(b.Text:GetText()) print(b.Text:GetPoint()) end
 -- /run local ne, nq = GetNumQuestLogEntries() for qi=1,ne do local b = QuestLogQuests_GetTitleButton(qi) print("ButtonID: " .. b.Text:GetText() .. " - QuestID: " .. b.questID) end
+-- /run local ne, nq = GetNumQuestLogEntries() for qi=1,ne do local b = QuestLogQuests_GetTitleButton(qi) local qid=b.questID if qid then print("ButtonID: "..qi.." "..b.Text:GetText() .. " - QuestID: " .. b.questID) end end
 
 
 
