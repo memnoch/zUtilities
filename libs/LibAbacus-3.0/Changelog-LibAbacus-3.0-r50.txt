@@ -1,0 +1,13 @@
+------------------------------------------------------------------------
+r50 | LaoTseu | 2012-07-26 22:42:36 +0000 (Thu, 26 Jul 2012) | 1 line
+Changed paths:
+   M /trunk/LibAbacus-3.0.lua
+
+Replace 1/0 by math.huge so the library works with the 5.0.3 PTR and Mists Beta.
+------------------------------------------------------------------------
+r49 | nevcairiel | 2009-03-06 10:12:52 +0000 (Fri, 06 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/LibAbacus-3.0.toc
+
+Restore LoD to Libraries, as 3.0.8 fixed all bugs that blocked LoD OptionalDeps to load properly.
+------------------------------------------------------------------------
