@@ -240,6 +240,7 @@ options.args.ui = {
                     -- mod:SecureHook(QuestScrollFrame, "Update", "updateQuestLog")
                     mod:SecureHookScript(QuestFrameGreetingPanel, "OnShow", "updateQuestFrame")
                     mod:SecureHook("QuestFrameGreetingPanel_OnShow", "updateQuestFrame")
+                    mod:SecureHook("QuestInfo_Display", "updateQuestInfo")
                     mod:SecureHook("GossipFrameUpdate", "gossipQuestFormat")
                     mod:ceFilters()
 					if not mod.Gossip_Show then
@@ -253,6 +254,7 @@ options.args.ui = {
                     -- mod:Unhook(QuestScrollFrame, "Update")
                     mod:Unhook(QuestFrameGreetingPanel, "OnShow")
                     mod:Unhook("QuestFrameGreetingPanel_OnShow")
+                    mod:Unhook("QuestInfo_Display")
                     mod:Unhook("GossipFrameUpdate")
 					if not db.SkipGossip and not db.showQuestLevels then -- and not db.AutoRevive then
 						mod.Gossip_Show = false
@@ -1601,11 +1603,17 @@ function zUtilities:updateQuestLog()
 		if isOnMap and not isTask and not isHeader then
         headerIndex = headerIndex + 1
         local button = QuestLogQuests_GetTitleButton(headerIndex)
+        local oldBlockHeight = button:GetHeight()
+        local oldHeight = button.Text:GetStringHeight()
+        -- local newTitle = "["..level.."] "..button.Text:GetText()
         button.Text:SetText(title)
-        button.Text:SetPoint("TOPLEFT",15,-4)
+        local newHeight = button.Text:GetStringHeight()
+        button:SetHeight(oldBlockHeight + newHeight - oldHeight)
+        -- button.Text:SetText(title)
+        -- button.Text:SetPoint("TOPLEFT",20,-4)
         button.Text:SetWidth(215)
         button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
-        button:SetHeight(button:GetHeight()+1)
+        -- button:SetHeight(button:GetHeight()+1)
 		-- if (tag or daily) and not complete then button.Text:SetText("") end
         if (debug) then
             -- mod:zMSG("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
@@ -1620,56 +1628,89 @@ end
 
 -- /run local ne, nq = GetNumQuestLogEntries() for qi=1,ne do local b = QuestLogQuests_GetTitleButton(qi) print("ButtonID: " .. b.Text:GetText() .. " - QuestID: " .. b.questID) end
 
+
+
+--------------------------------------------------------------------------------
+-- Name: zUtilities:QuestInfo_hook(template, parentFrame, acceptButton, material, mapView)
+-- Abstract: Add Quest Levels to the Quest Info Frame
+--------------------------------------------------------------------------------
+function zUtilities:updateQuestInfo(template, parentFrame, acceptButton, material, mapView)
+	local elementsTable = template.elements
+	for i = 1, #elementsTable, 3 do
+		if elementsTable[i] == QuestInfo_ShowTitle then
+			if QuestInfoFrame.questLog then
+				local questLogIndex = GetQuestLogSelection()
+                local ftitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
+				local level = select(2, GetQuestLogTitle(questLogIndex))
+				local newTitle = "["..level.."] "..QuestInfoTitleHeader:GetText()
+				QuestInfoTitleHeader:SetText(ftitle)
+			end
+		end
+	end
+end
+
+
+
 --------------------------------------------------------------------------------
 -- Name: zUtilities:updateWatchFrame()
 -- Abstract: Add Quest Levels to the Quest Watch Frame
 --------------------------------------------------------------------------------
 function zUtilities:updateWatchFrame()
-	local questWatchMaxWidth, watchTextIndex = 0, 1
 	for i=1,GetNumQuestWatches() do
-		local qi = GetQuestIndexForWatch(i)
-		-- if qi then
-			-- local numObjectives = GetNumQuestLeaderBoards(qi)
-            local questID, title, questLogIndex, numObjectives, requiredMoney, isComplete, startEvent, isAutoComplete, failureTime, timeElapsed, questType, isTask, isStory, isOnMap, hasLocalPOI = GetQuestWatchInfo(i)
-            if (not questID) then break end
-			-- if numObjectives > 0 then
-            local isSequenced = IsQuestSequenced(questID)
-            local existingBlock = QUEST_TRACKER_MODULE:GetExistingBlock(questID)
-            local block = QUEST_TRACKER_MODULE:GetBlock(questID)
-            local header = block.HeaderText
-            local name, level, suggestedGroup, isHeader, _, isComplete, frequency, _ = GetQuestLogTitle(questLogIndex)
-            local qColor = GetQuestDifficultyColor(level)
-            local ftitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
-            local _,_,_,_,nTag = mod:getTaggedQuestTitle(questLogIndex)
-            local titleWidth = strlen(nTag)
-            local ctitle = format('%s%s|r',mod:hex(qColor),ftitle)
-            local oldBlockHeight = existingBlock.Height
-            -- local oldHeight = QUEST_TRACKER_MODULE:SetStringText(oldBlock.HeaderText, title, nil, OBJECTIVE_TRACKER_COLOR["Header"])
-            local oldHeight = QUEST_TRACKER_MODULE:SetStringText(existingBlock.HeaderText, title, nil, OBJECTIVE_TRACKER_COLOR["Header"])
-            local newHeight = QUEST_TRACKER_MODULE:SetStringText(existingBlock.HeaderText, ftitle, nil, OBJECTIVE_TRACKER_COLOR["Header"])
-            -- existingBlock:SetHeight(oldBlockHeight + newHeight - oldHeight)
-            -- QUEST_TRACKER_MODULE:SetBlockHeader(block, format('%s', mod:getTaggedQuestTitle(questLogIndex)), questLogIndex, isComplete)
-            -- block:SetHeight(block:GetHeight()+3)
-            if header then
-                -- header:SetText(ftitle)
-                -- header:SetTextColor(qColor.r, qColor.b, qColor.b)
-                -- header.colorstyle = qColor
-                local height = QUEST_TRACKER_MODULE:SetStringText(header, ftitle, nil, OBJECTIVE_TRACKER_COLOR["Header"])
-                block.height = height
-                -- block.lineWidth = OBJECTIVE_TRACKER_TEXT_WIDTH - OBJECTIVE_TRACKER_ITEM_WIDTH - titleWidth
-                -- local headerWidth = header:SetWidth(block.lineWidth)
-                -- block:SetWidth(0)
-                block:SetPoint("LEFT", -10, 25)
+        local questID, title, questLogIndex, numObjectives, requiredMoney, isComplete, startEvent, isAutoComplete, failureTime, timeElapsed, questType, isTask, isStory, isOnMap, hasLocalPOI = GetQuestWatchInfo(i)
+        if (not questID) then break end
+        -- if numObjectives > 0 then
+        -- local isSequenced = IsQuestSequenced(questID)
+        -- local existingBlock = QUEST_TRACKER_MODULE:GetExistingBlock(questID)
+        -- local oldBlock = QUEST_TRACKER_MODULE:GetExistingBlock(questID)
+        -- local block = QUEST_TRACKER_MODULE:GetBlock(questID)
+        -- local header = block.HeaderText
+        -- local name, level, suggestedGroup, isHeader, _, isComplete, frequency, _ = GetQuestLogTitle(questLogIndex)
+        -- local qColor = GetQuestDifficultyColor(level)
+        -- local ftitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
+        -- local _,_,_,_,nTag = mod:getTaggedQuestTitle(questLogIndex)
+        -- local titleWidth = strlen(nTag)
+        -- local ctitle = format('%s%s|r',mod:hex(qColor),ftitle)
+        -- local oldBlockHeight = oldBlock.Height
+        -- local oldHeight = QUEST_TRACKER_MODULE:SetStringText(oldBlock.HeaderText, title, nil, OBJECTIVE_TRACKER_COLOR["Header"])
+        -- local newHeight = QUEST_TRACKER_MODULE:SetStringText(oldBlock.HeaderText, ftitle, nil, OBJECTIVE_TRACKER_COLOR["Header"])
+        -- oldBlock:SetHeight(oldBlockHeight + newHeight - oldHeight)
+        -- QUEST_TRACKER_MODULE:SetBlockHeader(block, format('%s', mod:getTaggedQuestTitle(questLogIndex)), questLogIndex, isComplete)
+        -- block:SetHeight(block:GetHeight()+3)
+        -- if header then
+            -- -- header:SetText(ftitle)
+            -- local height = QUEST_TRACKER_MODULE:SetStringText(header, ftitle, nil, OBJECTIVE_TRACKER_COLOR["Header"])
+            -- block.height = height
+            -- -- block.lineWidth = OBJECTIVE_TRACKER_TEXT_WIDTH - OBJECTIVE_TRACKER_ITEM_WIDTH - titleWidth
+            -- -- local headerWidth = header:SetWidth(block.lineWidth)
+            -- -- block:SetWidth(0)
+            -- block:SetPoint("LEFT", -10, 25)
+        -- end
+        -- block:SetWidth(block:GetWidth()+1)
+        -- /run ObjectiveTrackerBlocksFrame.currentBlock.itemButton:Click() 
+            -- for bi,butt in pairs(WATCHFRAME_QUESTLINES) do
+                -- if butt.text:GetText() == GetQuestLogTitle(questLogIndex) then
+                    -- butt.text:SetText(format('%s', mod:getTaggedQuestTitle(qiquestLogIndex
+                -- end
+            -- end
+        -- end
+    -- end
+        local oldBlock = QUEST_TRACKER_MODULE:GetExistingBlock(questID)
+        if oldBlock then
+            local oldBlockHeight = oldBlock.height
+            local oldHeight = QUEST_TRACKER_MODULE:SetStringText(oldBlock.HeaderText, title, nil, OBJECTIVE_TRACKER_COLOR["Header"])
+            local newTitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
+            local newHeight = QUEST_TRACKER_MODULE:SetStringText(oldBlock.HeaderText, newTitle, nil, OBJECTIVE_TRACKER_COLOR["Header"])
+            local newBlockHeight = (oldBlockHeight + newHeight - oldHeight)
+            oldBlock:SetHeight(newBlockHeight)
+            if (debug) then
+                print(newTitle)
+                print("oldBlockHeight: "..tostring(oldBlockHeight))
+                print("oldHeight: "..tostring(oldHeight))
+                print("newHeight: "..tostring(newHeight))
+                print("newBlockHeight: "..tostring(newBlockHeight) .. " - "..tostring(oldBlockHeight + newHeight - oldHeight))
             end
-            -- block:SetWidth(block:GetWidth()+1)
-            -- /run ObjectiveTrackerBlocksFrame.currentBlock.itemButton:Click() 
-				-- for bi,butt in pairs(WATCHFRAME_QUESTLINES) do
-					-- if butt.text:GetText() == GetQuestLogTitle(questLogIndex) then
-                        -- butt.text:SetText(format('%s', mod:getTaggedQuestTitle(qiquestLogIndex
-                    -- end
-				-- end
-			-- end
-		-- end
+        end
 	end
     if (debug) then
         mod:zMSG("debug: hook fired -> WatchFrame_Update")
