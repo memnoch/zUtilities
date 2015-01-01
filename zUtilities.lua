@@ -1600,6 +1600,9 @@ function zUtilities:updateQuestLog(poiTable)
     for questLogIndex=1,numEntries do
         local name, level, suggestedGroup, isHeader, _, isComplete, frequency, questID , startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle(questLogIndex)
         -- print("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
+        if (debug) then
+            mod:zMSG("debug\nname: "..tostring(name).."\nstartEvent: "..tostring(startEvent).."\ndisplayQuestID: "..tostring(displayQuestID).."\nisOnMap: "..tostring(isOnMap).."\nhasLocalPOI: "..tostring(hasLocalPOI).."\nisTask: "..tostring(isTask).."\nIsStory: "..tostring(isStory))
+        end
 		if isOnMap and not isTask and not isHeader then
             headerIndex = headerIndex + 1
             local button = QuestLogQuests_GetTitleButton(headerIndex)
@@ -1607,10 +1610,15 @@ function zUtilities:updateQuestLog(poiTable)
             local oldHeight = button.Text:GetStringHeight()
             local newTitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
             button.Text:SetText(newTitle)
+            if hasLocalPOI then
+                button.Text:SetPoint("TOPLEFT",30,-4)
+                button.Text:SetWidth(200)
+            else
+                button.Text:SetPoint("TOPLEFT",17,-4)
+                button.Text:SetWidth(215)
+            end
             local newHeight = button.Text:GetStringHeight()
             button:SetHeight(oldBlockHeight + newHeight - oldHeight)
-            button.Text:SetPoint("TOPLEFT",20,-4)
-            button.Text:SetWidth(215)
             button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
             if (debug) then
                 -- mod:zMSG("debug: Button #" .. i .. ": " .. "questID: " .. tostring(button.questID) .. " Old Title: " .. tostring(button.Text:GetText()) .. " New Title: " .. tostring(title))
@@ -1639,10 +1647,8 @@ function zUtilities:updateQuestInfo(template, parentFrame, acceptButton, materia
 		if elementsTable[i] == QuestInfo_ShowTitle then
 			if QuestInfoFrame.questLog then
 				local questLogIndex = GetQuestLogSelection()
-                local ftitle = format('%s', mod:getTaggedQuestTitle(questLogIndex))
-				local level = select(2, GetQuestLogTitle(questLogIndex))
-				local newTitle = "["..level.."] "..QuestInfoTitleHeader:GetText()
-				QuestInfoTitleHeader:SetText(ftitle)
+                local title = format('%s', mod:getTaggedQuestTitle(questLogIndex))
+				QuestInfoTitleHeader:SetText(title)
 			end
 		end
 	end
