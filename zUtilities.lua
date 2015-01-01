@@ -1243,23 +1243,20 @@ local zReps = {}
 function zUtilities:UPDATE_FACTION()
     if (db.betterReputation) then
         mod:PLAYER_ENTERING_WORLD()
-        for factionIndex=1, GetNumFactions(), 1 do
+        for factionIndex=1, GetNumFactions() do
             local name, _, standingID, bottomValue, topValue, earnedValue, _, _, isHeader = GetFactionInfo(factionIndex)
             local msg = nil
-            if (not isHeader) and zReps[name] then
-                local difference = earnedValue - zReps[name].Value
+            if not zReps[name] then zReps[name] = earnedValue end
+            if (not isHeader) then
+                local difference = earnedValue - zReps[name]
                 if (difference > 0 and standingID ~= 8) then
-                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d).|r",topValue-earnedValue,getglobal("FACTION_STANDING_LABEL"..standingID+1),name,earnedValue,topValue)
+                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",topValue-earnedValue,getglobal("FACTION_STANDING_LABEL"..standingID+1),name,earnedValue,topValue,(difference == 0 and "-" or difference))
                     mod:zRepPrint(msg)
                 elseif (difference < 0 and standingID ~= 1) then
                     difference=abs(difference)
-                    msg = format(" %d |cff7f7fffuntil %s with %s (%d/%d).|r",earnedValue-bottomValue,getglobal("FACTION_STANDING_LABEL"..standingID-1),name,earnedValue,topValue)
+                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",earnedValue-bottomValue,getglobal("FACTION_STANDING_LABEL"..standingID-1),name,earnedValue,topValue,(difference == 0 and "-" or difference))
                     mod:zRepPrint(msg)
                 end
-                zReps[name].Value = earnedValue
-            else
-                zReps[name] = {}
-                zReps[name].Value = earnedValue
             end
         end
     end
@@ -1354,8 +1351,8 @@ function zUtilities:inviteHandler(sender)
             mod:zMSG("Accepting invite from: ".. sender .. "(" .. relationship .. ")")
             AcceptGroup()
         else
-            mod:zMSG("Declining invite from: ".. sender)
-            DeclineGroup()
+            -- mod:zMSG("Declining invite from: ".. sender)
+            -- DeclineGroup()
         end
     end
     if (debug) then
@@ -1568,12 +1565,12 @@ end
 -- Abstract: Add Quest Levels to the QuestFrameGreetingPanel
 --------------------------------------------------------------------------------
 function zUtilities:updateQuestFrame()
-	local nact,navl = GetNumActiveQuests(), GetNumAvailableQuests()
+	local numActiveQuests,numAvailableQuests = GetNumActiveQuests(), GetNumAvailableQuests()
 	local title,level,button
 	local o,GetTitle,GetLevel = 0,GetActiveTitle,GetActiveLevel
-	for i = 1,nact+navl do
-		if(i==nact+1) then
-			o,GetTitle,GetLevel = nact,GetAvailableTitle,GetAvailableLevel
+	for i = 1,numActiveQuests+numAvailableQuests do
+		if(i==numActiveQuests+1) then
+			o,GetTitle,GetLevel = numActiveQuests,GetAvailableTitle,GetAvailableLevel
 		end
 		title,level = GetTitle(i-o), GetLevel(i-o)
         local qColor = GetQuestDifficultyColor(level)
