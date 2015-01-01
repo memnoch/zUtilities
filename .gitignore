@@ -2,6 +2,8 @@
 *.pkb
 *.bak
 nppBackup
+pkb
+.svn
 
 #ignore thumbnails created by windows
 Thumbs.db
