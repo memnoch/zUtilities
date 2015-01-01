@@ -1244,17 +1244,17 @@ function zUtilities:UPDATE_FACTION()
     if (db.betterReputation) then
         mod:PLAYER_ENTERING_WORLD()
         for factionIndex=1, GetNumFactions() do
-            local name, _, standingID, bottomValue, topValue, earnedValue, _, _, isHeader = GetFactionInfo(factionIndex)
+            local name, _, standingID, minValue, maxValue, earnedValue, _, _, isHeader, _, hasRep = GetFactionInfo(factionIndex)
             local msg = nil
             if not zReps[name] then zReps[name] = earnedValue end
-            if (not isHeader) then
-                local difference = earnedValue - zReps[name]
-                if (difference > 0 and standingID ~= 8) then
-                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",topValue-earnedValue,getglobal("FACTION_STANDING_LABEL"..standingID+1),name,earnedValue,topValue,(difference == 0 and "-" or difference))
+            if (not isHeader) or hasRep then
+                local repGain = earnedValue - zReps[name]
+                if (repGain > 0 and standingID ~= 8) then
+                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",maxValue-earnedValue,getglobal("FACTION_STANDING_LABEL"..standingID+1),name,earnedValue,maxValue,(repGain == 0 and "-" or repGain))
                     mod:zRepPrint(msg)
-                elseif (difference < 0 and standingID ~= 1) then
-                    difference=abs(difference)
-                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",earnedValue-bottomValue,getglobal("FACTION_STANDING_LABEL"..standingID-1),name,earnedValue,topValue,(difference == 0 and "-" or difference))
+                elseif (repGain < 0 and standingID ~= 1) then
+                    repGain=abs(repGain)
+                    msg = format("%d |cff7f7fffuntil %s with %s (%d/%d). %d/session|r",earnedValue-minValue,getglobal("FACTION_STANDING_LABEL"..standingID-1),name,earnedValue,maxValue,(repGain == 0 and "-" or repGain))
                     mod:zRepPrint(msg)
                 end
             end
